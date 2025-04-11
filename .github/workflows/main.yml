@@ -1,0 +1,37 @@
+name: CI/CD Pipeline for API App
+
+on:
+  push:
+    branches:
+      - main  # Trigger the pipeline when code is pushed to the main branch.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code from GitHub
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build Docker Image
+        run: |
+          docker build -t chennapragada-api .
+          docker tag chennapragada-api:latest 597088046551.dkr.ecr.us-east-1.amazonaws.com/chennapragada-api:latest
+
+      - name: Push Docker image to Amazon ECR
+        run: |
+          docker push 597088046551.dkr.ecr.us-east-1.amazonaws.com/chennapragada-api:latest
+
+      - name: Update ECS Service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          cluster: chennapragada01-cluster
+          service: chennapragada-api-service
+          task-definition: chennapragada-api-task-definition
+          image-uri: 597088046551.dkr.ecr.us-east-1.amazonaws.com/chennapragada-api:latest
